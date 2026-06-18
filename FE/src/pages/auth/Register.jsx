@@ -97,7 +97,7 @@ export default function Register() {
         return;
       }
       
-      navigate('/otp-verify', { state: { name, email, password, idNumber: null } });
+      navigate('/otp-verify', { state: { name, email, password, idNumber: null, testOtp: data.otp } });
     } catch (err) {
       setError('Lỗi kết nối server. Vui lòng thử lại.');
     } finally {

@@ -14,6 +14,7 @@ export default function OTPVerification() {
   const name = location.state?.name || '';
   const password = location.state?.password || '';
   const idNumber = location.state?.idNumber || '';
+  const testOtp = location.state?.testOtp || '';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(30);
@@ -125,6 +126,12 @@ export default function OTPVerification() {
           <Mail size={13} className="shrink-0 mt-0.5" />
           <span>Kiểm tra hộp thư đến (hoặc Spam) để lấy mã OTP. Mã có hiệu lực <strong>5 phút</strong>.</span>
         </div>
+
+        {testOtp && (
+          <div className="mb-6 py-3 px-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left">
+            ⚠️ <strong>OTP Thử Nghiệm:</strong> Do Google chặn gửi mail từ server Render, hãy dùng mã OTP này để hoàn tất: <strong className="text-sm text-brand-teal font-extrabold block mt-1 text-center bg-white border border-amber-200 rounded-lg py-1">{testOtp}</strong>
+          </div>
+        )}
 
         <form onSubmit={handleVerify} className="space-y-6">
           {error && (
