@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Clock, KeyRound, CheckCircle2, RefreshCw } from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-1-i2o9.onrender.com/api');
+const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-cqu9.onrender.com/api');
 
 export default function OTPVerification() {
   const navigate = useNavigate();

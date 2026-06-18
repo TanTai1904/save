@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkles, Send, Bot, User, Compass, HelpCircle } from 'lucide-react';
 
-const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-1-i2o9.onrender.com/api');
+const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-cqu9.onrender.com/api');
 
 export default function AIMentor() {
   const { user, balance, riskProfile, xp, streak, goals } = useAuth();
