@@ -129,7 +129,7 @@ export default function OTPVerification() {
 
         {testOtp && (
           <div className="mb-6 py-3 px-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left">
-            ⚠️ <strong>OTP Thử Nghiệm:</strong> Do Google chặn gửi mail từ server Render, hãy dùng mã OTP này để hoàn tất: <strong className="text-sm text-brand-teal font-extrabold block mt-1 text-center bg-white border border-amber-200 rounded-lg py-1">{testOtp}</strong>
+            ⚠️ <strong>OTP Thử Nghiệm:</strong> Hệ thống tự động cung cấp mã OTP thử nghiệm dưới đây để bạn hoàn tất đăng ký: <strong className="text-sm text-brand-teal font-extrabold block mt-1 text-center bg-white border border-amber-200 rounded-lg py-1">{testOtp}</strong>
           </div>
         )}
 

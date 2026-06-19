@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import nodemailer from 'nodemailer';
+import { sendMail } from './config/nodemailer.js';
 import { 
   sequelize, 
   User, 
@@ -33,28 +33,7 @@ const genId = (prefix = 'R') => prefix + Date.now() + Math.floor(Math.random() *
 // --- EMAIL / OTP SETUP ---
 const otpStore = {}; // { email: { otp, expiresAt, type } }
 
-const isResend = !!process.env.RESEND_API_KEY;
 
-const transporter = isResend
-  ? nodemailer.createTransport({
-      host: 'smtp.resend.com',
-      secure: true,
-      port: 465,
-      auth: {
-        user: 'resend',
-        pass: process.env.RESEND_API_KEY
-      }
-    })
-  : nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-      },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000
-    });
 
 const sendOTPEmail = async (toEmail, otp, type = 'register') => {
   const isRegister = type === 'register';
@@ -85,7 +64,7 @@ const sendOTPEmail = async (toEmail, otp, type = 'register') => {
     ? (process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev')
     : process.env.GMAIL_USER;
 
-  await transporter.sendMail({
+  await sendMail({
     from: `"SAVE+ Platform" <${fromEmail}>`,
     to: toEmail,
     subject,

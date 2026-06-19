@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import { Otp, User } from '../db.js';
-import transporter from '../config/nodemailer.js';
+import { sendMail } from '../config/nodemailer.js';
 
 /**
  * Send OTP API Controller
@@ -82,7 +82,7 @@ export const sendOtp = async (req, res) => {
 
     // 5. Send email via transporter
     try {
-      await transporter.sendMail(mailOptions);
+      await sendMail(mailOptions);
       return res.status(200).json({
         success: true,
         message: 'OTP sent successfully'
