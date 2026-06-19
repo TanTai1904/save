@@ -33,16 +33,28 @@ const genId = (prefix = 'R') => prefix + Date.now() + Math.floor(Math.random() *
 // --- EMAIL / OTP SETUP ---
 const otpStore = {}; // { email: { otp, expiresAt, type } }
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD
-  },
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 5000
-});
+const isResend = !!process.env.RESEND_API_KEY;
+
+const transporter = isResend
+  ? nodemailer.createTransport({
+      host: 'smtp.resend.com',
+      secure: true,
+      port: 465,
+      auth: {
+        user: 'resend',
+        pass: process.env.RESEND_API_KEY
+      }
+    })
+  : nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
+    });
 
 const sendOTPEmail = async (toEmail, otp, type = 'register') => {
   const isRegister = type === 'register';
@@ -69,8 +81,12 @@ const sendOTPEmail = async (toEmail, otp, type = 'register') => {
     <p style="text-align:center;color:#cbd5e1;font-size:11px;margin-top:20px">© 2026 SAVE+ · Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.</p>
   </div>`;
 
+  const fromEmail = process.env.RESEND_API_KEY
+    ? (process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev')
+    : process.env.GMAIL_USER;
+
   await transporter.sendMail({
-    from: `"SAVE+ Platform" <${process.env.GMAIL_USER}>`,
+    from: `"SAVE+ Platform" <${fromEmail}>`,
     to: toEmail,
     subject,
     html

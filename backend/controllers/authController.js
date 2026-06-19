@@ -46,8 +46,12 @@ export const sendOtp = async (req, res) => {
     await Otp.create({ email, otp, expiresAt });
 
     // 4. Beautiful responsive HTML email template
+    const fromEmail = process.env.RESEND_API_KEY
+      ? (process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev')
+      : process.env.GMAIL_USER;
+
     const mailOptions = {
-      from: `"SAVE+ Security" <${process.env.GMAIL_USER}>`,
+      from: `"SAVE+ Security" <${fromEmail}>`,
       to: email,
       subject: `🔐 [SAVE+] Mã OTP: ${otp}`,
       html: `
