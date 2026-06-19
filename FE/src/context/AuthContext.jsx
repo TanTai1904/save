@@ -11,7 +11,7 @@ const INITIAL_ADMIN_USERS = [
   { id: 'U005', name: 'Hoàng Anh Tuấn', email: 'tuan.ha@tcbs.vn', role: 'user', learningProgress: 60, riskProfile: 'Balanced', subscription: 'Premium', status: 'Active' }
 ];
 
-const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-1-i2o9.onrender.com/api');
+const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-production-55af.up.railway.app/api');
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
