@@ -11,12 +11,9 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // If no user is logged in, redirect to landing page if visiting root, else to login page
+  // If no user is logged in, redirect to landing page
   if (!user) {
-    if (location.pathname === '/') {
-      return <Navigate to="/landing" replace />;
-    }
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/landing" replace />;
   }
 
   // Double check admin route security
