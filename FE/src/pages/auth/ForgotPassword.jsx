@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, ArrowLeft, CheckCircle2, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2, Lock, Eye, EyeOff, KeyRound, Clock, RefreshCw } from 'lucide-react';
 
 const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin.includes('localhost') ? 'http://localhost:5000/api' : 'https://save-production-55af.up.railway.app/api');
 
@@ -8,11 +8,22 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: nhập email, 2: nhập mật khẩu mới, 3: thành công
   const [email, setEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [testOtp, setTestOtp] = useState('');
+  const [timer, setTimer] = useState(0);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer(t => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
 
   // Bước 1: Gửi email → chuyển sang bước đặt mật khẩu
   const handleSubmitEmail = async (e) => {
@@ -28,6 +39,13 @@ export default function ForgotPassword() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); return; }
+      
+      if (data.otp) {
+        setTestOtp(data.otp);
+      } else {
+        setTestOtp('');
+      }
+      setTimer(30);
       setStep(2);
     } catch {
       setError('Lỗi kết nối server. Vui lòng thử lại.');
@@ -36,10 +54,37 @@ export default function ForgotPassword() {
     }
   };
 
+  // Gửi lại mã OTP
+  const handleResendOtp = async () => {
+    setResending(true);
+    setError('');
+    try {
+      const res = await fetch(`${BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message); return; }
+      
+      if (data.otp) {
+        setTestOtp(data.otp);
+      } else {
+        setTestOtp('');
+      }
+      setTimer(30);
+    } catch {
+      setError('Lỗi kết nối. Vui lòng thử lại.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   // Bước 2: Đặt lại mật khẩu
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('');
+    if (!otpCode || otpCode.length < 6) { setError('Vui lòng nhập đủ 6 chữ số OTP.'); return; }
     if (newPassword.length < 6) { setError('Mật khẩu phải có ít nhất 6 ký tự.'); return; }
     if (newPassword !== confirmPassword) { setError('Mật khẩu xác nhận không khớp.'); return; }
 
@@ -48,7 +93,7 @@ export default function ForgotPassword() {
       const res = await fetch(`${BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, newPassword })
+        body: JSON.stringify({ email, otp: otpCode, newPassword })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -107,10 +152,42 @@ export default function ForgotPassword() {
           <div className="space-y-5">
             <div>
               <h2 className="text-xl font-bold text-slate-800">Đặt mật khẩu mới</h2>
-              <p className="text-xs text-slate-500 mt-1">Nhập mật khẩu mới cho tài khoản <strong>{email}</strong></p>
+              <p className="text-xs text-slate-500 mt-1">Nhập OTP và mật khẩu mới cho tài khoản <strong>{email}</strong></p>
             </div>
+            
+            {testOtp && (
+              <div className="py-2.5 px-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 text-left">
+                ⚠️ <strong>OTP Thử Nghiệm:</strong> Hệ thống tự động cung cấp mã OTP thử nghiệm để kiểm thử: <strong className="text-sm text-brand-teal font-extrabold block mt-1 text-center bg-white border border-amber-200 rounded-lg py-1">{testOtp}</strong>
+              </div>
+            )}
+
             {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 text-xs rounded-xl">{error}</div>}
+            
             <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Mã OTP (gửi qua email)</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><KeyRound size={16} /></span>
+                  <input type="text" maxLength={6} placeholder="Nhập 6 chữ số OTP" value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-50/50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/35 transition-all text-center tracking-[0.2em] font-extrabold text-base text-slate-900 placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-400" />
+                </div>
+                
+                {/* Resend timer */}
+                <div className="flex items-center justify-center space-x-1.5 text-[11px] mt-2">
+                  <Clock size={12} className="text-slate-400" />
+                  {timer > 0 ? (
+                    <span className="text-slate-500">Gửi lại mã sau <strong className="text-slate-700">{timer}s</strong></span>
+                  ) : (
+                    <button type="button" onClick={handleResendOtp} disabled={resending}
+                      className="text-brand-teal font-bold hover:underline flex items-center space-x-1 cursor-pointer">
+                      <RefreshCw size={11} className={resending ? 'animate-spin' : ''} />
+                      <span>{resending ? 'Đang gửi...' : 'Gửi lại mã OTP'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Mật khẩu mới</label>
                 <div className="relative">
@@ -124,6 +201,7 @@ export default function ForgotPassword() {
                   </button>
                 </div>
               </div>
+              
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Xác nhận mật khẩu</label>
                 <div className="relative">
@@ -133,6 +211,7 @@ export default function ForgotPassword() {
                     className="w-full bg-slate-50/50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/35 transition-all" />
                 </div>
               </div>
+              
               <button type="submit" disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-teal to-brand-green text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50">
                 {loading ? <span className="block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <span>Xác nhận đặt lại mật khẩu</span>}

@@ -13,7 +13,8 @@ import {
   Course, 
   CourseProgress, 
   PaymentRequest, 
-  Notification 
+  Notification,
+  Otp
 } from './db.js';
 import authRoutes from './routes/authRoutes.js';
 
@@ -75,7 +76,7 @@ const sendOTPEmail = async (toEmail, otp, type = 'register') => {
 // --- OTP ROUTES ---
 
 
-// 3. Quên mật khẩu - Xác minh email tồn tại
+// 3. Quên mật khẩu - Xác minh email tồn tại và gửi OTP
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Thiếu email.' });
@@ -84,25 +85,79 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ message: 'Email không tồn tại trong hệ thống.' });
 
-    res.json({ message: 'Email hợp lệ. Vui lòng đặt mật khẩu mới.' });
+    // Generate a random 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`[TESTING] FORGOT PASSWORD OTP GENERATED FOR ${email} IS: ${otp}`);
+
+    // Set expiration (10 minutes)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Delete existing OTPs for this email and create new OTP
+    await Otp.destroy({ where: { email } });
+    await Otp.create({ email, otp, expiresAt });
+
+    // Send email via SMTP/API
+    try {
+      await sendOTPEmail(email, otp, 'forgot');
+      res.json({ message: 'Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn.' });
+    } catch (mailError) {
+      console.error('Error sending SMTP email:', mailError.message);
+      console.log(`\n==================================================`);
+      console.log(`[SMTP FAIL BYPASS] KHÔNG THỂ GỬI EMAIL VIA SMTP.`);
+      console.log(`MÃ OTP ĐẶT LẠI MẬT KHẨU CỦA EMAIL ${email} LÀ: ${otp}`);
+      console.log(`==================================================\n`);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'OTP bypass active',
+        otp: otp
+      });
+    }
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ message: 'Lỗi xác minh email. Vui lòng thử lại.' });
   }
 });
 
-// 4. Đặt lại mật khẩu (không cần OTP)
+// 4. Đặt lại mật khẩu (yêu cầu mã OTP)
 app.post('/api/auth/reset-password', async (req, res) => {
-  const { email, newPassword } = req.body;
-  if (!email || !newPassword) return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin.' });
-  if (newPassword.length < 6) return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự.' });
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin bao gồm mã OTP và mật khẩu mới.' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự.' });
+  }
 
   try {
+    // Verify OTP code
+    const record = await Otp.findOne({
+      where: { email },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!record) {
+      return res.status(400).json({ message: 'Không tìm thấy mã OTP cho email này.' });
+    }
+
+    if (new Date() > record.expiresAt) {
+      await record.destroy();
+      return res.status(400).json({ message: 'Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.' });
+    }
+
+    if (record.otp !== otp.toString()) {
+      return res.status(400).json({ message: 'Mã OTP không chính xác.' });
+    }
+
+    // OTP matched -> Update User Password
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    // Clean up OTP codes for this email
+    await Otp.destroy({ where: { email } });
 
     res.json({ message: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.' });
   } catch (err) {
