@@ -1460,8 +1460,8 @@ Quy tắc phản hồi:
       });
 
       const candidateModels = [
-        'gemini-3.5-flash',
         'gemini-2.5-flash',
+        'gemini-3.5-flash',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
         'gemini-1.5-pro',
@@ -1471,7 +1471,7 @@ Quy tắc phản hồi:
       let generatedReply = '';
       for (const model of candidateModels) {
         try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+          const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1480,7 +1480,7 @@ Quy tắc phản hồi:
                 parts: [{ text: systemInstruction }]
               }
             })
-          });
+          }, 8000);
 
           const data = await response.json();
           if (response.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
